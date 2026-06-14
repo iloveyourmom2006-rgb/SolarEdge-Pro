@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="control.css" />
 </head>
 <body>
 
@@ -190,6 +191,9 @@
     <button class="nav-tab" data-section="alerts" id="nav-alerts">
       <span class="nav-icon">🔔</span><span class="nav-label">การแจ้งเตือน</span>
       <span class="nav-badge" id="nav-alert-badge">3</span>
+    </button>
+    <button class="nav-tab" data-section="control" id="nav-control">
+      <span class="nav-icon">🎛️</span><span class="nav-label">ระบบควบคุม</span>
     </button>
   </nav>
 
@@ -460,6 +464,316 @@
 
     </section>
 
+    <!-- ─────────────────────────────
+         SECTION: CONTROL (Solar Tracker + Auto Wash)
+    ───────────────────────────── -->
+    <section class="section" id="section-control" aria-label="ระบบควบคุมอัตโนมัติ">
+
+      <!-- ══ SOLAR TRACKER CARD ══ -->
+      <div class="card tracker-card" role="region" aria-label="ระบบติดตามดวงอาทิตย์">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">☀️ ระบบติดตามดวงอาทิตย์อัตโนมัติ (Solar Tracker)</h2>
+            <p class="card-subtitle">หมุนแกนแผงตามตำแหน่งดวงอาทิตย์แบบเรียลไทม์ — กรุงเทพฯ 13.76°N</p>
+          </div>
+          <div class="tracker-toggle-wrap">
+            <span class="toggle-label">ระบบ</span>
+            <label class="toggle-switch" title="เปิด/ปิดระบบติดตาม">
+              <input type="checkbox" id="tracker-enabled" checked />
+              <span class="toggle-knob"></span>
+            </label>
+            <span class="toggle-state" id="tracker-state-label">เปิดใช้งาน</span>
+          </div>
+        </div>
+
+        <!-- Tracker Visuals -->
+        <div class="tracker-visuals">
+
+          <!-- Elevation View -->
+          <div class="tracker-view-wrap">
+            <div class="tracker-view-title">📐 มุมเงย (Elevation Axis)</div>
+            <div class="tracker-canvas-wrap">
+              <canvas id="elevation-canvas" width="420" height="220" aria-label="แสดงมุมเงยของแผงตามดวงอาทิตย์"></canvas>
+            </div>
+            <div class="tracker-angle-display">
+              <div class="angle-box">
+                <div class="angle-val" id="elev-angle-val">—°</div>
+                <div class="angle-lbl">มุมเงย</div>
+              </div>
+              <div class="angle-divider"></div>
+              <div class="angle-box">
+                <div class="angle-val" id="panel-tilt-val">—°</div>
+                <div class="angle-lbl">มุมแผง</div>
+              </div>
+              <div class="angle-divider"></div>
+              <div class="angle-box">
+                <div class="angle-val sunrise-color" id="sunrise-val">—</div>
+                <div class="angle-lbl">พระอาทิตย์ขึ้น</div>
+              </div>
+              <div class="angle-divider"></div>
+              <div class="angle-box">
+                <div class="angle-val sunset-color" id="sunset-val">—</div>
+                <div class="angle-lbl">พระอาทิตย์ตก</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Azimuth View -->
+          <div class="tracker-view-wrap">
+            <div class="tracker-view-title">🧭 ทิศทาง (Azimuth Axis)</div>
+            <div class="tracker-canvas-wrap">
+              <canvas id="azimuth-canvas" width="280" height="280" aria-label="แสดงทิศทางของแผงตามดวงอาทิตย์"></canvas>
+            </div>
+            <div class="tracker-angle-display">
+              <div class="angle-box">
+                <div class="angle-val" id="azim-angle-val">—°</div>
+                <div class="angle-lbl">อะซิมุท</div>
+              </div>
+              <div class="angle-divider"></div>
+              <div class="angle-box">
+                <div class="angle-val" id="sun-direction-val">—</div>
+                <div class="angle-lbl">ทิศทางแสง</div>
+              </div>
+              <div class="angle-divider"></div>
+              <div class="angle-box">
+                <div class="angle-val" id="irr-tracker-val">—</div>
+                <div class="angle-lbl">W/m²</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sun Timeline -->
+        <div class="sun-timeline-wrap">
+          <div class="sun-timeline-label">เส้นทางดวงอาทิตย์วันนี้</div>
+          <div class="sun-timeline">
+            <div class="sun-timeline-track">
+              <div class="sun-timeline-fill" id="sun-timeline-fill"></div>
+              <div class="sun-timeline-thumb" id="sun-timeline-thumb">☀️</div>
+            </div>
+            <div class="sun-timeline-times">
+              <span id="tl-sunrise">—</span>
+              <span id="tl-noon">เที่ยง</span>
+              <span id="tl-sunset">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Motor Status -->
+        <div class="motor-status-row">
+          <div class="motor-item">
+            <div class="motor-icon">⚙️</div>
+            <div class="motor-info">
+              <div class="motor-name">มอเตอร์แกน X (เงย)</div>
+              <div class="motor-status ok" id="motor-x-status">ทำงานปกติ</div>
+            </div>
+            <div class="motor-angle" id="motor-x-angle">0°</div>
+          </div>
+          <div class="motor-item">
+            <div class="motor-icon">⚙️</div>
+            <div class="motor-info">
+              <div class="motor-name">มอเตอร์แกน Y (หมุน)</div>
+              <div class="motor-status ok" id="motor-y-status">ทำงานปกติ</div>
+            </div>
+            <div class="motor-angle" id="motor-y-angle">0°</div>
+          </div>
+          <div class="motor-item">
+            <div class="motor-icon">📡</div>
+            <div class="motor-info">
+              <div class="motor-name">เซ็นเซอร์แสง (LDR)</div>
+              <div class="motor-status ok" id="ldr-status">ออนไลน์</div>
+            </div>
+            <div class="motor-angle" id="ldr-val">—lx</div>
+          </div>
+          <div class="motor-item">
+            <div class="motor-icon">🌍</div>
+            <div class="motor-info">
+              <div class="motor-name">โหมดการทำงาน</div>
+              <div class="motor-status" id="tracker-mode-status">อัตโนมัติ</div>
+            </div>
+            <div class="motor-angle tracker-gain" id="tracker-gain">+18%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ WASH CONTROL CARD ══ -->
+      <div class="card wash-card" role="region" aria-label="ระบบล้างแผงอัตโนมัติ">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">💧 ระบบล้างแผงอัตโนมัติ</h2>
+            <p class="card-subtitle">ควบคุมปั๊มน้ำ หัวฉีด และตั้งเวลาล้างอัตโนมัติ</p>
+          </div>
+          <div class="wash-mode-row">
+            <span class="toggle-label">อัตโนมัติ</span>
+            <label class="toggle-switch" title="สลับโหมดล้าง">
+              <input type="checkbox" id="wash-auto-toggle" checked />
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="wash-main-grid">
+
+          <!-- Left: Animation + Status -->
+          <div class="wash-left">
+            <div class="wash-animation-wrap" id="wash-animation-wrap">
+              <!-- Panel rows -->
+              <div class="wash-scene">
+                <div class="wash-nozzle-bar" id="wash-nozzle-bar">
+                  <div class="wash-nozzle" id="nozzle-A"><span>🔧</span></div>
+                  <div class="wash-nozzle" id="nozzle-B"><span>🔧</span></div>
+                  <div class="wash-nozzle" id="nozzle-C"><span>🔧</span></div>
+                </div>
+                <div class="wash-drops-layer" id="wash-drops-layer"></div>
+                <div class="wash-panels-row">
+                  <div class="wash-panel" id="wpanel-A">
+                    <div class="wash-panel-label">Zone A</div>
+                    <div class="wash-panel-grid">
+                      <div class="wp-cell"></div><div class="wp-cell"></div><div class="wp-cell"></div>
+                      <div class="wp-cell"></div><div class="wp-cell"></div><div class="wp-cell"></div>
+                    </div>
+                    <div class="wash-panel-dirty" id="dirty-A"></div>
+                  </div>
+                  <div class="wash-panel" id="wpanel-B">
+                    <div class="wash-panel-label">Zone B</div>
+                    <div class="wash-panel-grid">
+                      <div class="wp-cell"></div><div class="wp-cell"></div><div class="wp-cell"></div>
+                      <div class="wp-cell"></div><div class="wp-cell"></div><div class="wp-cell"></div>
+                    </div>
+                    <div class="wash-panel-dirty" id="dirty-B"></div>
+                  </div>
+                  <div class="wash-panel" id="wpanel-C">
+                    <div class="wash-panel-label">Zone C</div>
+                    <div class="wash-panel-grid">
+                      <div class="wp-cell"></div><div class="wp-cell"></div><div class="wp-cell"></div>
+                      <div class="wp-cell"></div><div class="wp-cell"></div><div class="wp-cell"></div>
+                    </div>
+                    <div class="wash-panel-dirty" id="dirty-C"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status bar under animation -->
+              <div class="wash-status-bar" id="wash-status-bar">
+                <span class="wash-status-dot" id="wash-status-dot"></span>
+                <span id="wash-status-text">พร้อมใช้งาน</span>
+              </div>
+
+              <!-- Wash Progress -->
+              <div class="wash-progress-wrap" id="wash-progress-wrap" style="display:none">
+                <div class="wash-progress-label">
+                  <span id="wash-zone-label">ล้าง Zone A</span>
+                  <span id="wash-pct-label">0%</span>
+                </div>
+                <div class="wash-progress-track">
+                  <div class="wash-progress-fill" id="wash-progress-fill"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Controls + Stats -->
+          <div class="wash-right">
+
+            <!-- Water Stats -->
+            <div class="wash-stats-grid">
+              <div class="wash-stat-box">
+                <div class="wash-stat-icon">💧</div>
+                <div class="wash-stat-val" id="wstat-pressure">3.2 bar</div>
+                <div class="wash-stat-lbl">แรงดันน้ำ</div>
+              </div>
+              <div class="wash-stat-box">
+                <div class="wash-stat-icon">🌊</div>
+                <div class="wash-stat-val" id="wstat-flow">12 L/min</div>
+                <div class="wash-stat-lbl">อัตราไหล</div>
+              </div>
+              <div class="wash-stat-box">
+                <div class="wash-stat-icon">🪣</div>
+                <div class="wash-stat-val" id="wstat-tank">78%</div>
+                <div class="wash-stat-lbl">ถังน้ำ</div>
+              </div>
+              <div class="wash-stat-box">
+                <div class="wash-stat-icon">🔄</div>
+                <div class="wash-stat-val" id="wstat-count">14</div>
+                <div class="wash-stat-lbl">ครั้งเดือนนี้</div>
+              </div>
+            </div>
+
+            <!-- Zone Selector -->
+            <div class="wash-zone-selector">
+              <div class="form-group">
+                <label class="form-label">เลือกโซนที่จะล้าง</label>
+                <div class="zone-check-row">
+                  <label class="zone-check"><input type="checkbox" id="wzone-A" checked /> Zone A</label>
+                  <label class="zone-check"><input type="checkbox" id="wzone-B" checked /> Zone B</label>
+                  <label class="zone-check"><input type="checkbox" id="wzone-C" checked /> Zone C</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Schedule & Duration -->
+            <div class="wash-schedule-row">
+              <div class="form-group">
+                <label class="form-label">⏰ ตั้งเวลาล้างอัตโนมัติ</label>
+                <input type="time" id="wash-schedule-time" class="form-control" value="06:00" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">⏱️ ระยะเวลา (นาที)</label>
+                <input type="number" id="wash-duration" class="form-control" value="15" min="5" max="60" />
+              </div>
+            </div>
+
+            <!-- Trigger Condition -->
+            <div class="form-group">
+              <label class="form-label">🎯 เงื่อนไขล้างอัตโนมัติ</label>
+              <select id="wash-condition" class="form-control">
+                <option value="schedule">ตามตารางเวลา</option>
+                <option value="cleanliness">เมื่อความสะอาด &lt; 70%</option>
+                <option value="both">ทั้งสองเงื่อนไข</option>
+              </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="wash-actions">
+              <button class="btn btn-primary wash-start-btn" id="wash-start-btn" onclick="startWashCycle()">
+                💧 เริ่มล้างแผงทันที
+              </button>
+              <button class="btn btn-outline" id="wash-stop-btn" onclick="stopWashCycle()" style="display:none">
+                ⏹ หยุดล้าง
+              </button>
+              <button class="btn btn-outline-primary" onclick="saveWashSchedule()">
+                💾 บันทึกตารางเวลา
+              </button>
+            </div>
+
+            <!-- Last Wash Info -->
+            <div class="last-wash-info">
+              <div class="lw-row">
+                <span class="lw-label">ล้างครั้งล่าสุด</span>
+                <span class="lw-val" id="last-wash-val">10 มิ.ย. 2026 06:00 น.</span>
+              </div>
+              <div class="lw-row">
+                <span class="lw-label">ล้างครั้งถัดไป</span>
+                <span class="lw-val" id="next-wash-val">พรุ่งนี้ 06:00 น.</span>
+              </div>
+              <div class="lw-row">
+                <span class="lw-label">น้ำที่ใช้ล่าสุด</span>
+                <span class="lw-val">180 ลิตร</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wash Log -->
+        <div class="wash-log-section">
+          <div class="wash-log-title">📋 ประวัติการล้างแผง</div>
+          <ul class="wash-log-list" id="wash-log-list"></ul>
+        </div>
+      </div>
+
+    </section>
+
   </main>
 
   <!-- ═══════════════════════════════════════
@@ -472,5 +786,6 @@
   </footer>
 
   <script src="app.js"></script>
+  <script src="control.js"></script>
 </body>
 </html>
