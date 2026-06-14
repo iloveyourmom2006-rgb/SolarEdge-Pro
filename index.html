@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ระบบควบคุมแผงโซล่าเซลล์อัจฉริยะ - ติดตามพลังงาน สภาพแวดล้อม และจัดการการบำรุงรักษาแบบครบวงจร" />
+  <title>SolarEdge Pro — ระบบควบคุมโซล่าเซลล์อัจฉริยะ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       EMERGENCY ALERT OVERLAY
+  ═══════════════════════════════════════ -->
+  <div id="emergency-overlay" class="emergency-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="emergency-title">
+    <div class="emergency-card">
+      <div class="emergency-icon">⚡</div>
+      <h2 id="emergency-title">แจ้งเตือนฉุกเฉิน!</h2>
+      <p id="emergency-msg">ตรวจพบกระแสไฟลัดวงจรที่แผง Zone A-03</p>
+      <div class="emergency-actions">
+        <button id="emergency-view-btn" class="btn btn-danger">ดูรายละเอียด</button>
+        <button id="emergency-dismiss-btn" class="btn btn-outline">รับทราบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       OFFLINE BANNER
+  ═══════════════════════════════════════ -->
+  <div id="offline-banner" class="offline-banner hidden" role="status">
+    <span class="offline-icon">📶</span>
+    <span id="offline-text">ออฟไลน์ — แสดงข้อมูลจากแคช | คำสั่งในคิว: <strong id="queue-count">0</strong> รายการ</span>
+    <button id="sync-btn" class="btn-sync hidden">🔄 ซิงค์เดี๋ยวนี้</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       QR / BLUETOOTH MODAL
+  ═══════════════════════════════════════ -->
+  <div id="connect-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">เชื่อมต่ออุปกรณ์ใหม่</h3>
+        <button id="modal-close" class="modal-close" aria-label="ปิด">✕</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="tab-btn active" id="tab-qr" data-tab="qr">📷 QR Code</button>
+        <button class="tab-btn" id="tab-bt" data-tab="bluetooth">🔵 Bluetooth</button>
+      </div>
+      <div id="tab-content-qr" class="tab-content active">
+        <div class="qr-placeholder">
+          <div class="qr-frame">
+            <div class="qr-grid" id="qr-grid"></div>
+          </div>
+          <p class="qr-hint">สแกน QR Code เพื่อจับคู่อุปกรณ์</p>
+          <p class="qr-code-text">SolarEdge-Pro-2026</p>
+        </div>
+      </div>
+      <div id="tab-content-bluetooth" class="tab-content">
+        <div class="bt-scan">
+          <div class="bt-spinner" id="bt-spinner"></div>
+          <p class="bt-status" id="bt-status">กำลังสแกนหาอุปกรณ์...</p>
+          <ul class="bt-device-list" id="bt-devices"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       MAINTENANCE MODAL
+  ═══════════════════════════════════════ -->
+  <div id="maintenance-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" id="maint-backdrop"></div>
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <h3>📅 ปฏิทินบำรุงรักษา</h3>
+        <button id="maint-close" class="modal-close" aria-label="ปิด">✕</button>
+      </div>
+      <div class="maint-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="maint-zone">โซน</label>
+            <select id="maint-zone" class="form-control">
+              <option>Zone A — หลังคาอาคาร 1</option>
+              <option>Zone B — หลังคาอาคาร 2</option>
+              <option>Zone C — ลานจอดรถ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="maint-type">ประเภทงาน</label>
+            <select id="maint-type" class="form-control">
+              <option>ล้างทำความสะอาดแผง</option>
+              <option>เปลี่ยนสายไฟ</option>
+              <option>ตรวจเช็คอินเวอร์เตอร์</option>
+              <option>เปลี่ยนแบตเตอรี่</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="maint-date">วันที่กำหนด</label>
+            <input type="date" id="maint-date" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="maint-interval">ช่วงซ้ำ (วัน)</label>
+            <input type="number" id="maint-interval" class="form-control" value="90" min="1" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="maint-note">หมายเหตุ</label>
+          <textarea id="maint-note" class="form-control" rows="2" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+        </div>
+        <button class="btn btn-primary btn-full" id="maint-save-btn">💾 บันทึก</button>
+      </div>
+      <div class="maint-log-section">
+        <h4>ประวัติการบำรุงรักษา</h4>
+        <ul class="maint-log-list" id="maint-log-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       HEADER — Zone A (Z-Layout Top)
+  ═══════════════════════════════════════ -->
+  <header class="app-header" role="banner">
+    <!-- Top-Left: Logo + Brand -->
+    <div class="header-left">
+      <div class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="18" fill="#F39C12" opacity="0.2"/>
+          <circle cx="20" cy="20" r="8" fill="#F39C12"/>
+          <line x1="20" y1="2" x2="20" y2="8" stroke="#F39C12" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="20" y1="32" x2="20" y2="38" stroke="#F39C12" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="2" y1="20" x2="8" y2="20" stroke="#F39C12" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="32" y1="20" x2="38" y2="20" stroke="#F39C12" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="6.1" y1="6.1" x2="10.3" y2="10.3" stroke="#F39C12" stroke-width="2" stroke-linecap="round"/>
+          <line x1="29.7" y1="29.7" x2="33.9" y2="33.9" stroke="#F39C12" stroke-width="2" stroke-linecap="round"/>
+          <line x1="33.9" y1="6.1" x2="29.7" y2="10.3" stroke="#F39C12" stroke-width="2" stroke-linecap="round"/>
+          <line x1="10.3" y1="29.7" x2="6.1" y2="33.9" stroke="#F39C12" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">SolarEdge Pro</span>
+        <span class="brand-sub">ระบบควบคุมโซล่าเซลล์อัจฉริยะ</span>
+      </div>
+    </div>
+
+    <!-- Top-Right: Status + Alerts + Profile -->
+    <div class="header-right">
+      <div class="header-indicators">
+        <div class="status-chip" id="online-status-chip">
+          <span class="status-dot online" id="status-dot"></span>
+          <span id="status-label">ออนไลน์</span>
+        </div>
+        <div class="time-chip" id="current-time" aria-live="polite"></div>
+      </div>
+      <button class="icon-btn" id="toggle-offline-btn" title="จำลองออฟไลน์" aria-label="สลับสถานะออฟไลน์">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6s4-4 11-4 11 4 11 4"/><path d="M5 10s2.5-2.5 7-2.5 7 2.5 7 2.5"/><path d="M8.5 14s1.5-1.5 3.5-1.5 3.5 1.5 3.5 1.5"/><circle cx="12" cy="18" r="1.5" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn notification-btn" id="notif-btn" aria-label="การแจ้งเตือน" title="การแจ้งเตือน">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge">3</span>
+      </button>
+      <button class="icon-btn" id="theme-toggle" aria-label="สลับธีม" title="สลับธีม">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="theme-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <div class="avatar" aria-label="โปรไฟล์ผู้ใช้" title="วิศวกรระบบ">
+        <span>วศ</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════
+       NAV TABS
+  ═══════════════════════════════════════ -->
+  <nav class="main-nav" role="navigation" aria-label="เมนูหลัก">
+    <button class="nav-tab active" data-section="dashboard" id="nav-dashboard">
+      <span class="nav-icon">📊</span><span class="nav-label">แดชบอร์ด</span>
+    </button>
+    <button class="nav-tab" data-section="environment" id="nav-environment">
+      <span class="nav-icon">🌡️</span><span class="nav-label">สิ่งแวดล้อม</span>
+    </button>
+    <button class="nav-tab" data-section="zones" id="nav-zones">
+      <span class="nav-icon">📍</span><span class="nav-label">จัดการโซน</span>
+    </button>
+    <button class="nav-tab" data-section="alerts" id="nav-alerts">
+      <span class="nav-icon">🔔</span><span class="nav-label">การแจ้งเตือน</span>
+      <span class="nav-badge" id="nav-alert-badge">3</span>
+    </button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════ -->
+  <main class="main-content" role="main">
+
+    <!-- ─────────────────────────────
+         SECTION: DASHBOARD
+    ───────────────────────────── -->
+    <section class="section active" id="section-dashboard" aria-label="แดชบอร์ดพลังงาน">
+
+      <!-- Zone B: KPI Cards (Z diagonal) -->
+      <div class="kpi-grid" role="region" aria-label="ตัวชี้วัดหลัก">
+        <div class="kpi-card" id="kpi-voltage">
+          <div class="kpi-icon-wrap voltage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">แรงดันไฟฟ้า</div>
+            <div class="kpi-value" id="val-voltage">—</div>
+            <div class="kpi-unit">โวลต์ (V)</div>
+          </div>
+          <div class="kpi-trend" id="trend-voltage"></div>
+        </div>
+
+        <div class="kpi-card" id="kpi-current">
+          <div class="kpi-icon-wrap current">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">กระแสไฟฟ้า</div>
+            <div class="kpi-value" id="val-current">—</div>
+            <div class="kpi-unit">แอมแปร์ (A)</div>
+          </div>
+          <div class="kpi-trend" id="trend-current"></div>
+        </div>
+
+        <div class="kpi-card featured" id="kpi-power">
+          <div class="kpi-icon-wrap power">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">กำลังรวม ณ ปัจจุบัน</div>
+            <div class="kpi-value" id="val-power">—</div>
+            <div class="kpi-unit">กิโลวัตต์ (kW)</div>
+          </div>
+          <div class="kpi-trend" id="trend-power"></div>
+          <div class="kpi-bar-wrap"><div class="kpi-bar" id="power-bar"></div></div>
+        </div>
+
+        <div class="kpi-card" id="kpi-energy">
+          <div class="kpi-icon-wrap energy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V12"/><path d="M17 7l-5-5-5 5"/><path d="M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">พลังงานสะสมวันนี้</div>
+            <div class="kpi-value" id="val-energy">—</div>
+            <div class="kpi-unit">กิโลวัตต์-ชั่วโมง (kWh)</div>
+          </div>
+          <div class="kpi-trend" id="trend-energy"></div>
+        </div>
+      </div>
+
+      <!-- Zone C: Chart + Panel Details -->
+      <div class="content-grid">
+
+        <!-- Left: Chart -->
+        <div class="card chart-card" role="region" aria-label="กราฟพลังงาน">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">กราฟแนวโน้มการผลิตพลังงาน</h2>
+              <p class="card-subtitle">เปรียบเทียบกับเมื่อวานและค่าเฉลี่ย 30 วัน</p>
+            </div>
+            <div class="chart-controls">
+              <button class="chip active" data-range="today" id="range-today">วันนี้</button>
+              <button class="chip" data-range="week" id="range-week">7 วัน</button>
+              <button class="chip" data-range="month" id="range-month">30 วัน</button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="energy-chart" aria-label="กราฟพลังงาน" role="img"></canvas>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><span class="legend-dot today"></span>วันนี้</div>
+            <div class="legend-item"><span class="legend-dot yesterday"></span>เมื่อวาน</div>
+            <div class="legend-item"><span class="legend-dot avg"></span>ค่าเฉลี่ย 30 วัน</div>
+          </div>
+        </div>
+
+        <!-- Right: Panel Details Accordion -->
+        <div class="card panel-card" role="region" aria-label="ข้อมูลรายแผง">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">ข้อมูลรายแผง</h2>
+              <p class="card-subtitle">กดเพื่อดูรายละเอียดเชิงลึก</p>
+            </div>
+            <div class="panel-summary">
+              <span class="badge badge-green">ปกติ <span id="panel-ok-count">18</span></span>
+              <span class="badge badge-yellow">แจ้งเตือน <span id="panel-warn-count">3</span></span>
+              <span class="badge badge-red">ผิดปกติ <span id="panel-err-count">1</span></span>
+            </div>
+          </div>
+          <div class="panel-list" id="panel-list" role="list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─────────────────────────────
+         SECTION: ENVIRONMENT
+    ───────────────────────────── -->
+    <section class="section" id="section-environment" aria-label="สภาพแวดล้อมและความสะอาด">
+
+      <div class="env-grid">
+
+        <!-- Temperature Card -->
+        <div class="card env-card" role="region" aria-label="อุณหภูมิแผง">
+          <div class="card-header">
+            <h2 class="card-title">🌡️ อุณหภูมิแผงโซล่าเซลล์</h2>
+          </div>
+          <div class="gauge-container">
+            <canvas id="temp-gauge" width="220" height="130"></canvas>
+            <div class="gauge-center">
+              <div class="gauge-value" id="gauge-temp-val">—</div>
+              <div class="gauge-unit">°C</div>
+            </div>
+          </div>
+          <div class="temp-zones">
+            <div class="temp-zone safe">✅ ปลอดภัย (&lt;55°C)</div>
+            <div class="temp-zone warn">⚠️ ระวัง (55–70°C)</div>
+            <div class="temp-zone danger">🔴 อันตราย (&gt;70°C)</div>
+          </div>
+          <div class="env-zone-list" id="temp-zone-list"></div>
+        </div>
+
+        <!-- Dust Index Card -->
+        <div class="card env-card" role="region" aria-label="ดัชนีความสะอาด">
+          <div class="card-header">
+            <h2 class="card-title">🧹 ดัชนีความสะอาดแผง</h2>
+          </div>
+          <div class="cleanliness-display">
+            <div class="cleanliness-circle" id="clean-circle">
+              <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#E2E8F0" stroke-width="10"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#27AE60" stroke-width="10"
+                  stroke-dasharray="314.16" stroke-dashoffset="0"
+                  stroke-linecap="round" transform="rotate(-90 60 60)"
+                  id="clean-arc"/>
+              </svg>
+              <div class="clean-center">
+                <div class="clean-pct" id="clean-pct">—%</div>
+                <div class="clean-label">สะอาด</div>
+              </div>
+            </div>
+          </div>
+          <div class="dust-bars" id="dust-bars">
+            <!-- zone dust bars populated by JS -->
+          </div>
+          <div class="clean-action" id="clean-action-msg"></div>
+        </div>
+
+        <!-- Degradation Prediction Card -->
+        <div class="card env-card" role="region" aria-label="การวิเคราะห์ความเสื่อมสภาพ">
+          <div class="card-header">
+            <h2 class="card-title">📉 การคาดการณ์ความเสื่อมสภาพ</h2>
+          </div>
+          <div class="degrade-summary" id="degrade-summary">
+            <div class="degrade-row">
+              <span class="degrade-label">ความเข้มแสง (Irradiance)</span>
+              <span class="degrade-val" id="irr-val">—</span>
+            </div>
+            <div class="degrade-row">
+              <span class="degrade-label">กำลังไฟจริง / คาดหวัง</span>
+              <span class="degrade-val" id="pwr-ratio">—</span>
+            </div>
+            <div class="degrade-row">
+              <span class="degrade-label">ประสิทธิภาพโดยรวม (PR)</span>
+              <span class="degrade-val" id="pr-val">—</span>
+            </div>
+          </div>
+          <div class="degrade-chart-wrap">
+            <canvas id="degrade-chart" aria-label="กราฟความเสื่อม" role="img"></canvas>
+          </div>
+          <div class="degrade-alert" id="degrade-alert"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ─────────────────────────────
+         SECTION: ZONES
+    ───────────────────────────── -->
+    <section class="section" id="section-zones" aria-label="จัดการโซนและอุปกรณ์">
+
+      <div class="zones-header-row">
+        <div>
+          <h2 class="section-title">📍 จัดการโซนและอุปกรณ์</h2>
+          <p class="section-sub">แบ่งตามตำแหน่งจริง เพื่อค้นหาแผงที่มีปัญหาได้รวดเร็ว</p>
+        </div>
+        <div class="zones-actions">
+          <button class="btn btn-primary" id="connect-btn" aria-label="เชื่อมต่ออุปกรณ์ใหม่">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            เชื่อมต่ออุปกรณ์
+          </button>
+          <button class="btn btn-outline-primary" id="maint-open-btn" aria-label="เปิดปฏิทินบำรุงรักษา">
+            📅 ปฏิทินบำรุงรักษา
+          </button>
+        </div>
+      </div>
+
+      <div class="zone-cards-grid" id="zone-cards-grid">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Upcoming Maintenance -->
+      <div class="card upcoming-maint" role="region" aria-label="การบำรุงรักษาที่ใกล้ถึง">
+        <div class="card-header">
+          <h2 class="card-title">⏰ การบำรุงรักษาที่ใกล้ถึง</h2>
+        </div>
+        <ul class="upcoming-list" id="upcoming-list">
+          <!-- Populated by JS -->
+        </ul>
+      </div>
+
+    </section>
+
+    <!-- ─────────────────────────────
+         SECTION: ALERTS
+    ───────────────────────────── -->
+    <section class="section" id="section-alerts" aria-label="การแจ้งเตือน">
+
+      <div class="alerts-header-row">
+        <h2 class="section-title">🔔 ศูนย์การแจ้งเตือน</h2>
+        <button class="btn btn-outline" id="clear-all-btn" aria-label="ล้างการแจ้งเตือนทั้งหมด">ล้างทั้งหมด</button>
+      </div>
+
+      <div class="alert-tabs">
+        <button class="alert-tab-btn active" data-type="all" id="atype-all">ทั้งหมด</button>
+        <button class="alert-tab-btn" data-type="emergency" id="atype-emergency">🚨 ฉุกเฉิน</button>
+        <button class="alert-tab-btn" data-type="warning" id="atype-warning">⚠️ แจ้งเตือน</button>
+        <button class="alert-tab-btn" data-type="info" id="atype-info">ℹ️ ข้อมูล</button>
+      </div>
+
+      <div class="alert-list" id="alert-list" role="list" aria-live="polite">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Offline Queue -->
+      <div class="card offline-queue-card" role="region" aria-label="คิวคำสั่งออฟไลน์">
+        <div class="card-header">
+          <h2 class="card-title">📦 คิวคำสั่งออฟไลน์</h2>
+          <span class="badge badge-blue" id="queue-badge">0 รายการ</span>
+        </div>
+        <p class="queue-desc">คำสั่งที่บันทึกขณะออฟไลน์ จะถูกส่งอัตโนมัติเมื่อกลับมาออนไลน์</p>
+        <ul class="queue-list" id="queue-list">
+          <li class="queue-empty">ไม่มีคำสั่งค้างอยู่</li>
+        </ul>
+        <div class="sync-status" id="sync-status-display">
+          <span class="sync-dot synced" id="sync-dot"></span>
+          <span id="sync-status-text">ซิงค์ล่าสุด: เมื่อกี้</span>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════ -->
+  <footer class="app-footer" role="contentinfo">
+    <span>SolarEdge Pro v2.0 © 2026</span>
+    <span>อัปเดตล่าสุด: <span id="last-update">—</span></span>
+    <span>แผงทั้งหมด: <strong>22 แผง</strong> | โซน: <strong>3 โซน</strong></span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
