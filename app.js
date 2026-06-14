@@ -754,21 +754,48 @@ function renderPanelList() {
   container.innerHTML = state.panels.map(p => {
     const statusClass = p.status === 'error' ? 'status-error' : p.status === 'warn' ? 'status-warn' : '';
     const dotClass    = p.status === 'error' ? 'error' : p.status === 'warn' ? 'warn' : 'ok';
+    const tempColor   = p.temp > 70 ? 'var(--color-danger)' : p.temp > 55 ? 'var(--color-warning)' : 'var(--color-success)';
+    const powerColor  = p.status === 'error' ? 'var(--color-danger)' : p.status === 'warn' ? 'var(--color-warning)' : 'var(--color-primary)';
+    const statusLabel = p.status === 'ok' ? '✅ ปกติ' : p.status === 'warn' ? '⚠️ ระวัง' : '🔴 ผิดปกติ';
+    const chevronSvg  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
     return `
       <div class="panel-item ${statusClass}" id="panel-item-${p.id}" role="listitem">
         <div class="panel-header" onclick="togglePanel('${p.id}')" role="button" tabindex="0" aria-expanded="false" aria-controls="panel-detail-${p.id}">
           <span class="panel-status-dot ${dotClass}"></span>
           <span class="panel-name">${p.name}</span>
-          <span class="panel-power-tag">${p.power.toFixed(0)} W</span>
-          <span class="panel-chevron">▾</span>
+          <div class="panel-header-right">
+            <span class="panel-temp-tag" style="color:${tempColor}">${p.temp.toFixed(0)}°C</span>
+            <span class="panel-power-tag" style="color:${powerColor};border-color:${powerColor}20">${p.power.toFixed(0)} W</span>
+            <span class="panel-chevron">${chevronSvg}</span>
+          </div>
         </div>
         <div class="panel-detail" id="panel-detail-${p.id}">
-          <div class="detail-row"><span class="detail-label">แรงดัน</span><span class="detail-val">${p.voltage.toFixed(1)} V</span></div>
-          <div class="detail-row"><span class="detail-label">กระแส</span><span class="detail-val">${p.current.toFixed(2)} A</span></div>
-          <div class="detail-row"><span class="detail-label">กำลัง</span><span class="detail-val">${p.power.toFixed(1)} W</span></div>
-          <div class="detail-row"><span class="detail-label">อุณหภูมิ</span><span class="detail-val ${p.temp > 70 ? 'danger-text' : p.temp > 55 ? 'warn-text' : ''}">${p.temp.toFixed(1)} °C</span></div>
-          <div class="detail-row"><span class="detail-label">สถานะ</span><span class="detail-val">${p.status === 'ok' ? '✅ ปกติ' : p.status === 'warn' ? '⚠️ ระวัง' : '🔴 ผิดปกติ'}</span></div>
-          <div class="detail-row"><span class="detail-label">โซน</span><span class="detail-val">Zone ${p.zone}</span></div>
+          <div class="detail-grid">
+            <div class="detail-cell">
+              <div class="detail-cell-label">แรงดัน</div>
+              <div class="detail-cell-val" id="dv-${p.id}-v">${p.voltage.toFixed(1)} <small>V</small></div>
+            </div>
+            <div class="detail-cell">
+              <div class="detail-cell-label">กระแส</div>
+              <div class="detail-cell-val" id="dv-${p.id}-a">${p.current.toFixed(2)} <small>A</small></div>
+            </div>
+            <div class="detail-cell">
+              <div class="detail-cell-label">กำลังไฟ</div>
+              <div class="detail-cell-val" id="dv-${p.id}-w" style="color:${powerColor}">${p.power.toFixed(1)} <small>W</small></div>
+            </div>
+            <div class="detail-cell">
+              <div class="detail-cell-label">อุณหภูมิ</div>
+              <div class="detail-cell-val" id="dv-${p.id}-t" style="color:${tempColor}">${p.temp.toFixed(1)} <small>°C</small></div>
+            </div>
+            <div class="detail-cell">
+              <div class="detail-cell-label">สถานะ</div>
+              <div class="detail-cell-val">${statusLabel}</div>
+            </div>
+            <div class="detail-cell">
+              <div class="detail-cell-label">โซน</div>
+              <div class="detail-cell-val">Zone ${p.zone}</div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -785,15 +812,22 @@ function renderPanelList() {
 
 function updatePanelList() {
   state.panels.forEach(p => {
-    const detail = document.getElementById(`panel-detail-${p.id}`);
-    if (!detail) return;
-    const rows = detail.querySelectorAll('.detail-row');
-    if (rows[0]) rows[0].querySelector('.detail-val').textContent = `${p.voltage.toFixed(1)} V`;
-    if (rows[1]) rows[1].querySelector('.detail-val').textContent = `${p.current.toFixed(2)} A`;
-    if (rows[2]) rows[2].querySelector('.detail-val').textContent = `${p.power.toFixed(1)} W`;
-    if (rows[3]) rows[3].querySelector('.detail-val').textContent = `${p.temp.toFixed(1)} °C`;
+    const tempColor  = p.temp > 70 ? 'var(--color-danger)' : p.temp > 55 ? 'var(--color-warning)' : 'var(--color-success)';
+    const powerColor = p.status === 'error' ? 'var(--color-danger)' : p.status === 'warn' ? 'var(--color-warning)' : 'var(--color-primary)';
+    const setVal = (id, txt, color) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = txt;
+      if (color) el.style.color = color;
+    };
+    setVal(`dv-${p.id}-v`, `${p.voltage.toFixed(1)} <small>V</small>`);
+    setVal(`dv-${p.id}-a`, `${p.current.toFixed(2)} <small>A</small>`);
+    setVal(`dv-${p.id}-w`, `${p.power.toFixed(1)} <small>W</small>`, powerColor);
+    setVal(`dv-${p.id}-t`, `${p.temp.toFixed(1)} <small>°C</small>`, tempColor);
     const powerTag = document.querySelector(`#panel-item-${p.id} .panel-power-tag`);
-    if (powerTag) powerTag.textContent = `${p.power.toFixed(0)} W`;
+    if (powerTag) { powerTag.textContent = `${p.power.toFixed(0)} W`; powerTag.style.color = powerColor; }
+    const tempTag = document.querySelector(`#panel-item-${p.id} .panel-temp-tag`);
+    if (tempTag)  { tempTag.textContent = `${p.temp.toFixed(0)}°C`; tempTag.style.color = tempColor; }
   });
 }
 
