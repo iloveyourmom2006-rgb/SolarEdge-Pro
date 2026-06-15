@@ -450,7 +450,7 @@
 .wash-log-time  { font-size: var(--font-size-xs); color: var(--text-muted); white-space: nowrap; }
 .wash-log-result{ font-size: var(--font-size-xs); font-weight: 700; color: var(--color-success); }
 
-/* Responsive Control Section */
+/* ── Responsive Control Section ── */
 @media (max-width: 1100px) {
   .tracker-visuals   { grid-template-columns: 1fr; }
   .wash-main-grid    { grid-template-columns: 1fr; }
@@ -458,9 +458,56 @@
 }
 
 @media (max-width: 768px) {
-  .motor-status-row  { grid-template-columns: 1fr 1fr; }
+  /* Tracker */
+  .tracker-visuals      { grid-template-columns: 1fr; gap: var(--space-md); }
+  .tracker-toggle-wrap  { flex-wrap: wrap; gap: 6px; }
+  .tracker-canvas-wrap canvas { width: 100%; height: auto; }
+  .tracker-angle-display { flex-wrap: wrap; gap: 0; }
+  .angle-divider         { display: none; }
+  .angle-box             { min-width: 48%; padding: var(--space-xs); }
+  .angle-val             { font-size: var(--font-size-lg); }
+
+  /* Sun timeline */
+  .sun-timeline-track { height: 28px; }
+  .sun-timeline-thumb { font-size: 18px; }
+
+  /* Motor row */
+  .motor-status-row  { grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+  .motor-item        { padding: var(--space-sm); gap: 6px; }
+  .motor-icon        { font-size: 18px; }
+  .motor-angle       { font-size: var(--font-size-sm); }
+
+  /* Wash */
+  .wash-main-grid    { grid-template-columns: 1fr; }
   .wash-stats-grid   { grid-template-columns: repeat(2, 1fr); }
   .wash-schedule-row { grid-template-columns: 1fr; }
-  .angle-divider     { display: none; }
-  .angle-box         { min-width: 45%; }
+  .wash-animation-wrap { min-height: 240px; padding: var(--space-md); }
+  .wash-panels-row   { gap: 6px; }
+  .wp-cell           { height: 18px; }
+
+  /* Wash actions */
+  .wash-actions .btn { font-size: 13px; padding: 10px 16px; }
+  .zone-check        { font-size: 13px; padding: 6px 10px; }
+}
+
+@media (max-width: 480px) {
+  /* Motor row: 1 col */
+  .motor-status-row  { grid-template-columns: 1fr; }
+
+  /* Angle display: 2x2 */
+  .angle-box         { min-width: 50%; }
+
+  /* Wash stats: 2 col */
+  .wash-stats-grid   { grid-template-columns: repeat(2, 1fr); }
+
+  /* Wash zone checks: wrap */
+  .zone-check-row    { gap: 6px; }
+  .zone-check        { flex: 1; justify-content: center; font-size: 12px; }
+
+  /* Wash actions: full width */
+  .wash-actions      { gap: 6px; }
+  .wash-actions .btn { width: 100%; justify-content: center; }
+
+  /* Log */
+  .wash-log-item     { flex-wrap: wrap; }
 }
