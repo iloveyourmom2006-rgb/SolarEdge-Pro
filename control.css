@@ -215,30 +215,38 @@
 .wash-drops-layer {
   position: absolute;
   left: 0; right: 0;
-  top: 44px;
-  height: 120px;
+  top: 0; bottom: 0;
+  height: 100%;
   pointer-events: none;
   overflow: hidden;
+  z-index: 5;
 }
 
 .water-drop {
   position: absolute;
   width: 3px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, rgba(52,152,219,0.9), rgba(41,128,185,0.4));
+  border-radius: 3px 3px 50% 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(93, 188, 240, 0.95),
+    rgba(41, 128, 185, 0.5)
+  );
+  box-shadow: 0 0 4px rgba(52,152,219,0.4);
   animation: dropFall var(--drop-dur, 0.8s) linear var(--drop-delay, 0s) infinite;
 }
 
 @keyframes dropFall {
-  0%   { transform: translateY(0) scaleY(1);   opacity: 0.9; }
-  80%  { opacity: 0.6; }
-  100% { transform: translateY(100px) scaleY(3); opacity: 0; }
+  0%   { transform: translateY(0) scaleY(1);    opacity: 0.95; }
+  60%  { opacity: 0.8; }
+  100% { transform: translateY(var(--drop-fall, 160px)) scaleY(2.5); opacity: 0; }
 }
 
 .wash-panels-row {
   display: flex;
   gap: var(--space-sm);
   margin-top: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .wash-panel {

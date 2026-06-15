@@ -766,18 +766,57 @@ function startWaterDrops(zone) {
   layer.innerHTML = '';
 
   const zoneIdx = ['A','B','C'].indexOf(zone);
-  const baseX   = 50 + zoneIdx * 32; // approx percentage width for zone
+
+  // Calculate actual panel center X from DOM positions
+  const panelEl = document.getElementById(`wpanel-${zone}`);
+  const layerEl = layer;
+  let baseX = [17, 50, 83][zoneIdx]; // fallback percentages
+
+  if (panelEl && layerEl) {
+    const panelRect = panelEl.getBoundingClientRect();
+    const layerRect = layerEl.getBoundingClientRect();
+    const panelCenterX = panelRect.left + panelRect.width / 2;
+    const layerLeft    = layerRect.left;
+    const layerWidth   = layerRect.width;
+    if (layerWidth > 0) {
+      baseX = ((panelCenterX - layerLeft) / layerWidth) * 100;
+    }
+  }
+
+  // Nozzle Y position relative to layer
+  const nozzleEl = document.getElementById(`nozzle-${zone}`);
+  let startY = 0;
+  if (nozzleEl && layerEl) {
+    const nozzleRect = nozzleEl.getBoundingClientRect();
+    const layerRect  = layerEl.getBoundingClientRect();
+    startY = (nozzleRect.bottom - layerRect.top) - 4;
+  }
+
+  // How far drops fall (to bottom of panels)
+  const panelRowEl = document.querySelector('.wash-panels-row');
+  let fallDist = 160;
+  if (panelRowEl && layerEl) {
+    const panelRowRect = panelRowEl.getBoundingClientRect();
+    const layerRect    = layerEl.getBoundingClientRect();
+    fallDist = (panelRowRect.bottom - layerRect.top) - startY + 12;
+  }
+
+  // Set CSS variable so animation knows how far to fall
+  layer.style.setProperty('--drop-fall', fallDist + 'px');
+
+  const spread = 14; // px spread within zone
 
   WASH_STATE.dropInterval = setInterval(() => {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const drop = document.createElement('div');
       drop.className = 'water-drop';
-      const x = baseX + (Math.random() - 0.5) * 28;
-      const h = 6 + Math.random() * 12;
-      const dur = (0.5 + Math.random() * 0.6).toFixed(2);
-      const del = (Math.random() * 0.4).toFixed(2);
+      const xPct = baseX + (Math.random() - 0.5) * (spread / (layerEl.offsetWidth || 300) * 100 * 6);
+      const h    = 8 + Math.random() * 14;
+      const dur  = (0.55 + Math.random() * 0.55).toFixed(2);
+      const del  = (Math.random() * 0.45).toFixed(2);
       drop.style.cssText = `
-        left: ${x}%;
+        left: ${xPct.toFixed(1)}%;
+        top: ${startY}px;
         height: ${h}px;
         --drop-dur: ${dur}s;
         --drop-delay: ${del}s;
@@ -785,10 +824,10 @@ function startWaterDrops(zone) {
       layer.appendChild(drop);
     }
     // Clean up old drops
-    while (layer.children.length > 60) {
+    while (layer.children.length > 90) {
       layer.removeChild(layer.firstChild);
     }
-  }, 120);
+  }, 100);
 }
 
 function stopWaterDrops() {
