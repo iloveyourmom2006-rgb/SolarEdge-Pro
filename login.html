@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="description" content="เข้าสู่ระบบ SolarEdge Pro — ระบบควบคุมโซล่าเซลล์อัจฉริยะ" />
+  <title>เข้าสู่ระบบ — SolarEdge Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:     #1A4A6E;
+      --primary-h:   #15395a;
+      --accent:      #2980B9;
+      --accent-glow: rgba(41,128,185,.35);
+      --success:     #27AE60;
+      --danger:      #E74C3C;
+      --warning:     #E67E22;
+      --gold:        #F39C12;
+      --font:        'Noto Sans Thai', 'Inter', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #030d18;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Animated background ────────────────────────────── */
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-canvas::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 30%, rgba(26,74,110,.55) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 80% 70%, rgba(41,128,185,.35) 0%, transparent 65%),
+        radial-gradient(ellipse 100% 80% at 50% 100%, rgba(243,156,18,.12) 0%, transparent 55%);
+    }
+
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      animation: orb-drift 12s ease-in-out infinite alternate;
+    }
+
+    .bg-orb-1 {
+      width: 520px; height: 520px;
+      background: rgba(26,74,110,.4);
+      top: -160px; left: -120px;
+      animation-delay: 0s;
+    }
+
+    .bg-orb-2 {
+      width: 380px; height: 380px;
+      background: rgba(41,128,185,.25);
+      bottom: -100px; right: -80px;
+      animation-delay: -4s;
+    }
+
+    .bg-orb-3 {
+      width: 280px; height: 280px;
+      background: rgba(243,156,18,.15);
+      top: 50%; right: 15%;
+      animation-delay: -8s;
+    }
+
+    @keyframes orb-drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(30px, -20px) scale(1.05); }
+    }
+
+    /* Grid dots */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, rgba(41,128,185,.12) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── Login card ─────────────────────────────────────── */
+    .login-wrap {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+      padding: 16px;
+      animation: card-appear .6s cubic-bezier(.34,1.56,.64,1) both;
+    }
+
+    @keyframes card-appear {
+      from { opacity: 0; transform: translateY(32px) scale(.96); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+
+    .login-card {
+      background: rgba(10, 25, 45, 0.72);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 24px;
+      padding: 40px 36px 32px;
+      box-shadow:
+        0 0 0 1px rgba(41,128,185,.12),
+        0 40px 80px rgba(0,0,0,.6),
+        inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    @media (max-width: 480px) {
+      .login-card { padding: 32px 24px 28px; border-radius: 20px; }
+    }
+
+    /* ── Logo ───────────────────────────────────────────── */
+    .logo-section {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #1A4A6E, #2980B9);
+      border-radius: 20px;
+      font-size: 2rem;
+      margin-bottom: 14px;
+      box-shadow:
+        0 0 0 4px rgba(41,128,185,.2),
+        0 8px 24px rgba(26,74,110,.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15), transparent 60%);
+      border-radius: inherit;
+    }
+
+    .logo-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #e8f4fd;
+      letter-spacing: -.01em;
+    }
+
+    .logo-sub {
+      font-size: .78rem;
+      color: rgba(200,225,245,.5);
+      margin-top: 3px;
+      letter-spacing: .04em;
+    }
+
+    /* ── Form ───────────────────────────────────────────── */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: .75rem;
+      font-weight: 600;
+      color: rgba(180,210,235,.7);
+      margin-bottom: 6px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.05);
+      color: #e8f4fd;
+      font-size: .92rem;
+      font-family: var(--font);
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      outline: none;
+    }
+
+    .form-input::placeholder { color: rgba(180,210,235,.35); }
+
+    .form-input:focus {
+      border-color: var(--accent);
+      background: rgba(41,128,185,.08);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-input.has-icon { padding-right: 44px; }
+
+    .input-icon-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(180,210,235,.5);
+      font-size: 1rem;
+      padding: 4px;
+      transition: color .2s;
+      line-height: 1;
+    }
+
+    .input-icon-btn:hover { color: var(--accent); }
+
+    /* ── Checkbox row ───────────────────────────────────── */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .check-row label {
+      font-size: .82rem;
+      color: rgba(200,225,245,.6);
+      cursor: pointer;
+      user-select: none;
+      line-height: 1.3;
+    }
+
+    .check-row label a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color .2s;
+    }
+
+    .check-row label a:hover { color: #5dade2; text-decoration: underline; }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+      border-radius: 4px;
+    }
+
+    /* ── Forgot / Reset section ─────────────────────────── */
+    .forgot-link-row {
+      text-align: right;
+      margin-bottom: 20px;
+      margin-top: -8px;
+    }
+
+    .forgot-link {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: .8rem;
+      font-family: var(--font);
+      cursor: pointer;
+      padding: 0;
+      transition: color .2s;
+    }
+
+    .forgot-link:hover { color: #5dade2; text-decoration: underline; }
+
+    .forgot-section {
+      background: rgba(41,128,185,.07);
+      border: 1px solid rgba(41,128,185,.2);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height .4s ease, opacity .3s ease, padding .3s ease;
+    }
+
+    .forgot-section.open {
+      max-height: 300px;
+      opacity: 1;
+    }
+
+    .forgot-section h4 {
+      font-size: .85rem;
+      font-weight: 600;
+      color: #7fb3d3;
+      margin-bottom: 10px;
+    }
+
+    .forgot-section .form-input {
+      margin-bottom: 10px;
+    }
+
+    .forgot-confirm {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: .82rem;
+      color: var(--success);
+      margin-top: 6px;
+    }
+
+    .forgot-confirm.show { display: flex; }
+
+    /* ── Login button ───────────────────────────────────── */
+    .login-btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      font-size: .95rem;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(26,74,110,.5);
+      letter-spacing: .02em;
+      margin-bottom: 18px;
+    }
+
+    .login-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15), transparent 60%);
+    }
+
+    .login-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(26,74,110,.65);
+    }
+
+    .login-btn:active:not(:disabled) { transform: translateY(0); }
+
+    .login-btn:disabled {
+      opacity: .7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* spinner */
+    .btn-spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
+
+    .btn-text { display: block; }
+
+    .login-btn.loading .btn-text   { display: none; }
+    .login-btn.loading .btn-spinner { display: block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error message ──────────────────────────────────── */
+    .login-error {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(231,76,60,.12);
+      border: 1px solid rgba(231,76,60,.3);
+      border-radius: 10px;
+      color: #e74c3c;
+      font-size: .83rem;
+      margin-bottom: 14px;
+      animation: shake .35s ease;
+    }
+
+    .login-error.show { display: flex; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
+
+    /* ── Demo hint ──────────────────────────────────────── */
+    .demo-hint {
+      text-align: center;
+      font-size: .72rem;
+      color: rgba(180,210,235,.35);
+      line-height: 1.6;
+    }
+
+    .demo-hint strong { color: rgba(180,210,235,.55); }
+
+    /* ── Privacy policy modal ───────────────────────────── */
+    .pp-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,.7);
+      backdrop-filter: blur(6px);
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+
+    .pp-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .pp-card {
+      background: #0d1e30;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 40px 80px rgba(0,0,0,.7);
+      animation: card-appear .35s ease;
+    }
+
+    .pp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+
+    .pp-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e8f4fd;
+    }
+
+    .pp-close {
+      background: none;
+      border: none;
+      color: rgba(180,210,235,.5);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: background .2s, color .2s;
+    }
+
+    .pp-close:hover { background: rgba(231,76,60,.15); color: #e74c3c; }
+
+    .pp-body {
+      overflow-y: auto;
+      padding: 20px 24px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.12) transparent;
+    }
+
+    .pp-body::-webkit-scrollbar { width: 5px; }
+    .pp-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
+
+    .pp-body h4 {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+
+    .pp-body h4:first-child { margin-top: 0; }
+
+    .pp-body p {
+      font-size: .8rem;
+      color: rgba(200,225,245,.65);
+      line-height: 1.7;
+    }
+
+    .pp-footer {
+      padding: 14px 24px;
+      border-top: 1px solid rgba(255,255,255,.07);
+    }
+
+    .pp-accept-btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: .88rem;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .pp-accept-btn:hover { background: var(--primary-h); }
+
+    /* ── Particle stars ─────────────────────────────────── */
+    .stars {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,.6);
+      animation: twinkle var(--d, 3s) ease-in-out infinite var(--del, 0s) alternate;
+    }
+
+    @keyframes twinkle {
+      from { opacity: 0; transform: scale(.5); }
+      to   { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* ── Floating solar rays ────────────────────────────── */
+    .solar-rays {
+      position: fixed;
+      top: -10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      pointer-events: none;
+      z-index: 1;
+      opacity: .06;
+    }
+
+    .solar-ray {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50%;
+      height: 2px;
+      background: linear-gradient(to right, var(--gold), transparent);
+      transform-origin: left center;
+      animation: ray-spin 24s linear infinite;
+    }
+
+    @keyframes ray-spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Background -->
+  <div class="bg-canvas">
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+  </div>
+
+  <!-- Stars -->
+  <div class="stars" id="stars-container"></div>
+
+  <!-- Solar rays -->
+  <div class="solar-rays" id="solar-rays"></div>
+
+  <!-- ══════════════════════════════════════
+       PRIVACY POLICY MODAL
+  ══════════════════════════════════════ -->
+  <div id="pp-overlay" class="pp-overlay" role="dialog" aria-modal="true" aria-labelledby="pp-title">
+    <div class="pp-card">
+      <div class="pp-header">
+        <h3 id="pp-title">🛡️ นโยบายความเป็นส่วนตัว</h3>
+        <button class="pp-close" id="pp-close-btn" aria-label="ปิด">✕</button>
+      </div>
+      <div class="pp-body">
+        <h4>1. ข้อมูลที่เราเก็บรวบรวม</h4>
+        <p>SolarEdge Pro เก็บรวบรวมข้อมูลที่จำเป็นสำหรับการให้บริการเท่านั้น ได้แก่ ชื่อผู้ใช้ อีเมล หมายเลขโทรศัพท์ และข้อมูลการใช้งานระบบโซล่าเซลล์ ข้อมูลทั้งหมดถูกเก็บอย่างปลอดภัยบนเซิร์ฟเวอร์ที่ผ่านการรับรอง ISO 27001</p>
+
+        <h4>2. วัตถุประสงค์ในการใช้ข้อมูล</h4>
+        <p>ข้อมูลของท่านถูกใช้เพื่อ: ให้บริการระบบควบคุมและติดตามพลังงาน, ส่งการแจ้งเตือนสำคัญเกี่ยวกับระบบ, วิเคราะห์ประสิทธิภาพแผงโซล่าเซลล์, และปรับปรุงคุณภาพบริการอย่างต่อเนื่อง</p>
+
+        <h4>3. การแบ่งปันข้อมูล</h4>
+        <p>เราไม่ขายหรือแบ่งปันข้อมูลส่วนบุคคลของท่านกับบุคคลภายนอก ยกเว้นในกรณีที่ได้รับความยินยอมจากท่าน หรือตามที่กฎหมายกำหนด การแบ่งปันข้อมูลกับคู่ค้าทางธุรกิจจะกระทำภายใต้ข้อตกลงการรักษาความลับที่เข้มงวด</p>
+
+        <h4>4. การรักษาความปลอดภัย</h4>
+        <p>ระบบใช้การเข้ารหัส AES-256 สำหรับข้อมูลที่จัดเก็บ และ TLS 1.3 สำหรับการส่งข้อมูล มีการตรวจสอบความปลอดภัยโดยผู้เชี่ยวชาญภายนอกทุก 6 เดือน และระบบ 2FA สำหรับบัญชีผู้ดูแล</p>
+
+        <h4>5. สิทธิ์ของท่าน</h4>
+        <p>ท่านมีสิทธิ์เข้าถึง แก้ไข หรือลบข้อมูลส่วนบุคคลของตนเองได้ตลอดเวลา ผ่านหน้าโปรไฟล์ในระบบ หรือติดต่อทีมสนับสนุนที่ privacy@solaredge.th ภายใน 30 วันทำการ</p>
+
+        <h4>6. การใช้ Cookie และ LocalStorage</h4>
+        <p>ระบบใช้ localStorage เพื่อจัดเก็บข้อมูลเซสชันและการตั้งค่าผู้ใช้บนเบราว์เซอร์ของท่าน ข้อมูลนี้ไม่ถูกส่งไปยังเซิร์ฟเวอร์ภายนอก และท่านสามารถล้างข้อมูลได้ตลอดเวลาผ่านการออกจากระบบ</p>
+      </div>
+      <div class="pp-footer">
+        <button class="pp-accept-btn" id="pp-accept-btn">รับทราบและยอมรับ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       LOGIN CARD
+  ══════════════════════════════════════ -->
+  <div class="login-wrap">
+    <div class="login-card">
+
+      <!-- Logo -->
+      <div class="logo-section">
+        <div class="logo-icon">☀️</div>
+        <div class="logo-title">SolarEdge Pro</div>
+        <div class="logo-sub">ระบบควบคุมโซล่าเซลล์อัจฉริยะ</div>
+      </div>
+
+      <!-- Error -->
+      <div class="login-error" id="login-error" role="alert">
+        <span>⚠️</span>
+        <span id="login-error-msg">อีเมลหรือรหัสผ่านไม่ถูกต้อง</span>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" for="email-input">อีเมล</label>
+        <div class="input-wrap">
+          <input
+            id="email-input"
+            type="email"
+            class="form-input"
+            placeholder="admin@solaredge.th"
+            autocomplete="email"
+            inputmode="email"
+          />
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label class="form-label" for="password-input">รหัสผ่าน</label>
+        <div class="input-wrap">
+          <input
+            id="password-input"
+            type="password"
+            class="form-input has-icon"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          <button class="input-icon-btn" id="pw-toggle-btn" type="button" aria-label="แสดง/ซ่อนรหัสผ่าน">👁</button>
+        </div>
+      </div>
+
+      <!-- Row: Remember me + Forgot -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:6px;">
+        <div class="check-row" style="margin:0;">
+          <input type="checkbox" id="remember-me" />
+          <label for="remember-me">จำฉันไว้</label>
+        </div>
+        <button class="forgot-link" id="forgot-btn" type="button">ลืมรหัสผ่าน?</button>
+      </div>
+
+      <!-- Forgot Password Section (inline) -->
+      <div class="forgot-section" id="forgot-section">
+        <h4>🔑 รีเซ็ตรหัสผ่าน</h4>
+        <input
+          type="email"
+          class="form-input"
+          id="forgot-email"
+          placeholder="กรอกอีเมลของคุณ"
+          inputmode="email"
+        />
+        <button class="login-btn" id="reset-send-btn" type="button" style="margin-bottom:0; padding:10px;">
+          <span class="btn-text">📨 ส่งลิงก์รีเซ็ต</span>
+          <div class="btn-spinner"></div>
+        </button>
+        <div class="forgot-confirm" id="forgot-confirm">
+          <span>✅</span>
+          <span>ส่งลิงก์รีเซ็ตไปยังอีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมาย</span>
+        </div>
+      </div>
+
+      <!-- Privacy checkbox -->
+      <div class="check-row" style="margin-bottom:18px;">
+        <input type="checkbox" id="privacy-accept" />
+        <label for="privacy-accept">
+          ฉันยอมรับ
+          <a href="#" id="privacy-link">นโยบายความเป็นส่วนตัว</a>
+          ของ SolarEdge Pro
+        </label>
+      </div>
+
+      <!-- Login button -->
+      <button class="login-btn" id="login-btn" type="button">
+        <span class="btn-text">เข้าสู่ระบบ</span>
+        <div class="btn-spinner"></div>
+      </button>
+
+      <!-- Demo hint -->
+      <p class="demo-hint">
+        <strong>Demo:</strong> admin@solaredge.th &nbsp;/&nbsp; Solar@1234
+      </p>
+
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       BACKGROUND FX
+    ============================================================ */
+    // Stars
+    (function() {
+      const container = document.getElementById('stars-container');
+      for (let i = 0; i < 60; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const size = Math.random() * 2 + 1;
+        s.style.cssText = `
+          width:${size}px; height:${size}px;
+          top:${Math.random()*100}%;
+          left:${Math.random()*100}%;
+          --d:${(Math.random()*3+2).toFixed(1)}s;
+          --del:${-(Math.random()*4).toFixed(1)}s;
+        `;
+        container.appendChild(s);
+      }
+    })();
+
+    // Solar rays
+    (function() {
+      const wrap = document.getElementById('solar-rays');
+      for (let i = 0; i < 12; i++) {
+        const r = document.createElement('div');
+        r.className = 'solar-ray';
+        r.style.transform = `rotate(${i * 30}deg)`;
+        r.style.animationDelay = `${-i * 2}s`;
+        wrap.appendChild(r);
+      }
+    })();
+
+    /* ============================================================
+       AUTH CHECK — already logged in → redirect
+    ============================================================ */
+    (function() {
+      if (localStorage.getItem('solar_auth')) {
+        window.location.href = 'index.html';
+      }
+    })();
+
+    /* ============================================================
+       ELEMENTS
+    ============================================================ */
+    const emailInput    = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
+    const pwToggleBtn   = document.getElementById('pw-toggle-btn');
+    const rememberMe    = document.getElementById('remember-me');
+    const privacyAccept = document.getElementById('privacy-accept');
+    const privacyLink   = document.getElementById('privacy-link');
+    const loginBtn      = document.getElementById('login-btn');
+    const loginError    = document.getElementById('login-error');
+    const loginErrorMsg = document.getElementById('login-error-msg');
+    const forgotBtn     = document.getElementById('forgot-btn');
+    const forgotSection = document.getElementById('forgot-section');
+    const forgotEmail   = document.getElementById('forgot-email');
+    const resetSendBtn  = document.getElementById('reset-send-btn');
+    const forgotConfirm = document.getElementById('forgot-confirm');
+    const ppOverlay     = document.getElementById('pp-overlay');
+    const ppCloseBtn    = document.getElementById('pp-close-btn');
+    const ppAcceptBtn   = document.getElementById('pp-accept-btn');
+
+    /* ============================================================
+       PRE-FILL remembered email
+    ============================================================ */
+    (function() {
+      const savedEmail = localStorage.getItem('solar_remember_email');
+      if (savedEmail) {
+        emailInput.value = savedEmail;
+        rememberMe.checked = true;
+      }
+    })();
+
+    /* ============================================================
+       SHOW / HIDE PASSWORD
+    ============================================================ */
+    pwToggleBtn.addEventListener('click', () => {
+      const isText = passwordInput.type === 'text';
+      passwordInput.type = isText ? 'password' : 'text';
+      pwToggleBtn.textContent = isText ? '👁' : '🙈';
+    });
+
+    /* ============================================================
+       FORGOT PASSWORD TOGGLE
+    ============================================================ */
+    let forgotOpen = false;
+    forgotBtn.addEventListener('click', () => {
+      forgotOpen = !forgotOpen;
+      forgotSection.classList.toggle('open', forgotOpen);
+      forgotBtn.textContent = forgotOpen ? 'กลับเข้าสู่ระบบ' : 'ลืมรหัสผ่าน?';
+    });
+
+    /* ============================================================
+       SEND RESET LINK
+    ============================================================ */
+    resetSendBtn.addEventListener('click', () => {
+      const email = forgotEmail.value.trim();
+      if (!email || !email.includes('@')) {
+        forgotEmail.style.borderColor = '#e74c3c';
+        forgotEmail.style.boxShadow = '0 0 0 3px rgba(231,76,60,.2)';
+        return;
+      }
+      forgotEmail.style.borderColor = '';
+      forgotEmail.style.boxShadow = '';
+      resetSendBtn.classList.add('loading');
+      resetSendBtn.disabled = true;
+
+      setTimeout(() => {
+        resetSendBtn.classList.remove('loading');
+        resetSendBtn.disabled = false;
+        forgotConfirm.classList.add('show');
+        resetSendBtn.style.display = 'none';
+      }, 1800);
+    });
+
+    /* ============================================================
+       PRIVACY POLICY MODAL
+    ============================================================ */
+    privacyLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      ppOverlay.classList.add('open');
+    });
+
+    ppCloseBtn.addEventListener('click', () => ppOverlay.classList.remove('open'));
+
+    ppAcceptBtn.addEventListener('click', () => {
+      ppOverlay.classList.remove('open');
+      privacyAccept.checked = true;
+    });
+
+    ppOverlay.addEventListener('click', (e) => {
+      if (e.target === ppOverlay) ppOverlay.classList.remove('open');
+    });
+
+    /* ============================================================
+       LOGIN LOGIC
+    ============================================================ */
+    const VALID_EMAIL    = 'admin@solaredge.th';
+    const VALID_PASSWORD = 'Solar@1234';
+
+    function showError(msg) {
+      loginErrorMsg.textContent = msg;
+      loginError.classList.add('show');
+      // re-trigger animation
+      loginError.style.animation = 'none';
+      loginError.offsetHeight; // reflow
+      loginError.style.animation = '';
+    }
+
+    function hideError() {
+      loginError.classList.remove('show');
+    }
+
+    function doLogin() {
+      hideError();
+
+      const email    = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      // Validate fields
+      if (!email) {
+        showError('กรุณากรอกอีเมล');
+        emailInput.focus();
+        return;
+      }
+
+      if (!password) {
+        showError('กรุณากรอกรหัสผ่าน');
+        passwordInput.focus();
+        return;
+      }
+
+      if (!privacyAccept.checked) {
+        showError('กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนเข้าสู่ระบบ');
+        return;
+      }
+
+      // Start loading
+      loginBtn.classList.add('loading');
+      loginBtn.disabled = true;
+
+      setTimeout(() => {
+        if (email === VALID_EMAIL && password === VALID_PASSWORD) {
+          // Save auth
+          localStorage.setItem('solar_auth', JSON.stringify({
+            email: email,
+            loggedInAt: new Date().toISOString(),
+          }));
+
+          // Save user data
+          const existingUser = localStorage.getItem('solar_user');
+          if (!existingUser) {
+            localStorage.setItem('solar_user', JSON.stringify({
+              name:  'Admin',
+              email: 'admin@solaredge.th',
+              role:  'ผู้ดูแลระบบ',
+              phone: '081-234-5678',
+            }));
+          }
+
+          // Remember email
+          if (rememberMe.checked) {
+            localStorage.setItem('solar_remember_email', email);
+          } else {
+            localStorage.removeItem('solar_remember_email');
+          }
+
+          // Redirect
+          window.location.href = 'index.html';
+        } else {
+          loginBtn.classList.remove('loading');
+          loginBtn.disabled = false;
+          showError('อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+      }, 1600);
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+
+    // Allow Enter key
+    [emailInput, passwordInput].forEach(el => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doLogin();
+      });
+    });
+
+    // Hide error on input
+    [emailInput, passwordInput].forEach(el => {
+      el.addEventListener('input', hideError);
+    });
+  </script>
+</body>
+</html>

@@ -9,10 +9,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="style.css?v=4" />
-  <link rel="stylesheet" href="control.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="control.css?v=5" />
+  <link rel="stylesheet" href="profile.css?v=1" />
 </head>
 <body>
+  <!-- ═══ AUTH GUARD ═══ -->
+  <script>if(!localStorage.getItem('solar_auth'))location.href='login.html';</script>
+  <!-- Auth Guard -->
+  <script src="auth.js"></script>
+  <script>checkAuth();</script>
 
   <!-- ═══════════════════════════════════════
        EMERGENCY ALERT OVERLAY
@@ -169,8 +175,8 @@
       <button class="icon-btn" id="theme-toggle" aria-label="สลับธีม" title="สลับธีม">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="theme-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-      <div class="avatar" aria-label="โปรไฟล์ผู้ใช้" title="วิศวกรระบบ">
-        <span>วศ</span>
+      <div class="avatar" id="header-avatar" onclick="openProfileModal()" style="cursor:pointer" aria-label="โปรไฟล์ผู้ใช้" title="คลิกเพื่อดูโปรไฟล์" role="button" tabindex="0">
+        A
       </div>
     </div>
   </header>
@@ -785,7 +791,176 @@
     <span>แผงทั้งหมด: <strong>22 แผง</strong> | โซน: <strong>3 โซน</strong></span>
   </footer>
 
-  <script src="app.js?v=3"></script>
-  <script src="control.js?v=3"></script>
+
+  <!-- ═══════════════════════════════════════
+       PROFILE MODAL
+  ═══════════════════════════════════════ -->
+  <div id="profile-overlay" class="profile-overlay hidden" role="dialog" aria-modal="true" aria-label="โปรไฟล์ผู้ใช้">
+    <div class="profile-modal">
+
+      <!-- Header -->
+      <div class="pm-header">
+        <div class="pm-header-info">
+          <div class="pm-header-name" id="pm-header-name">Admin</div>
+          <div class="pm-header-role" id="pm-header-role">ผู้ดูแลระบบ</div>
+        </div>
+        <button class="pm-close" onclick="closeProfileModal()" aria-label="ปิด">✕</button>
+      </div>
+
+      <!-- Avatar -->
+      <div class="pm-avatar-section">
+        <div class="pm-avatar-wrap">
+          <div class="pm-avatar" id="pm-avatar-display">A</div>
+          <button class="pm-avatar-btn" id="pm-avatar-btn" title="เปลี่ยนรูปโปรไฟล์">📷</button>
+        </div>
+        <input type="file" id="avatar-file-input" accept="image/*" />
+        <div class="pm-avatar-hint">คลิกรูปหรือปุ่มกล้องเพื่อเปลี่ยนรูปโปรไฟล์</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="pm-tabs" role="tablist">
+        <button class="pm-tab-btn active" data-tab="info"  role="tab">👤 ข้อมูลส่วนตัว</button>
+        <button class="pm-tab-btn"        data-tab="sec"   role="tab">🔒 ความปลอดภัย</button>
+        <button class="pm-tab-btn"        data-tab="prefs" role="tab">⚙️ การตั้งค่า</button>
+      </div>
+
+      <!-- Body -->
+      <div class="pm-body">
+
+        <!-- Tab: Info -->
+        <div class="pm-panel active" id="pm-panel-info" role="tabpanel">
+          <div class="pm-row-2">
+            <div class="pm-form-group">
+              <label class="pm-label" for="pm-name">ชื่อ-นามสกุล</label>
+              <input class="pm-input" type="text" id="pm-name" placeholder="กรอกชื่อ" />
+            </div>
+            <div class="pm-form-group">
+              <label class="pm-label" for="pm-role">ตำแหน่ง</label>
+              <input class="pm-input" type="text" id="pm-role" placeholder="ตำแหน่งงาน" disabled />
+            </div>
+          </div>
+          <div class="pm-form-group">
+            <label class="pm-label" for="pm-email">อีเมล</label>
+            <input class="pm-input" type="email" id="pm-email" placeholder="อีเมล" disabled />
+          </div>
+          <div class="pm-form-group">
+            <label class="pm-label" for="pm-phone">เบอร์โทรศัพท์</label>
+            <input class="pm-input" type="tel" id="pm-phone" placeholder="เช่น 081-234-5678" />
+          </div>
+          <button class="pm-save-btn" id="pm-save-info">💾 บันทึกข้อมูล</button>
+        </div>
+
+        <!-- Tab: Security -->
+        <div class="pm-panel" id="pm-panel-sec" role="tabpanel">
+          <div class="pm-section-label">เปลี่ยนรหัสผ่าน</div>
+          <div class="pm-form-group">
+            <label class="pm-label" for="pm-current-password">รหัสผ่านเดิม</label>
+            <div class="pm-pw-wrap">
+              <input class="pm-input" type="password" id="pm-current-password" placeholder="รหัสผ่านเดิม" />
+              <button class="pm-pw-eye" type="button">👁</button>
+            </div>
+          </div>
+          <div class="pm-form-group">
+            <label class="pm-label" for="pm-new-password">รหัสผ่านใหม่</label>
+            <div class="pm-pw-wrap">
+              <input class="pm-input" type="password" id="pm-new-password" placeholder="อย่างน้อย 8 ตัวอักษร" />
+              <button class="pm-pw-eye" type="button">👁</button>
+            </div>
+            <div class="pw-strength" id="pw-strength-meter">
+              <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
+              <div class="pw-strength-label" id="pw-strength-label"></div>
+            </div>
+          </div>
+          <div class="pm-form-group">
+            <label class="pm-label" for="pm-confirm-password">ยืนยันรหัสผ่านใหม่</label>
+            <div class="pm-pw-wrap">
+              <input class="pm-input" type="password" id="pm-confirm-password" placeholder="ยืนยันรหัสผ่าน" />
+              <button class="pm-pw-eye" type="button">👁</button>
+            </div>
+          </div>
+          <button class="pm-save-btn" id="pm-save-password">🔑 เปลี่ยนรหัสผ่าน</button>
+        </div>
+
+        <!-- Tab: Settings -->
+        <div class="pm-panel" id="pm-panel-prefs" role="tabpanel">
+          <div class="pm-section-label">การแจ้งเตือน</div>
+          <label class="pm-toggle-row">
+            <div class="pm-toggle-info">
+              <div class="pm-toggle-name">📧 อีเมล</div>
+              <div class="pm-toggle-desc">รับการแจ้งเตือนผ่านอีเมล</div>
+            </div>
+            <div class="toggle-switch"><input type="checkbox" id="pm-notify-email" /><span class="slider"></span></div>
+          </label>
+          <label class="pm-toggle-row">
+            <div class="pm-toggle-info">
+              <div class="pm-toggle-name">📱 SMS</div>
+              <div class="pm-toggle-desc">รับการแจ้งเตือนทาง SMS</div>
+            </div>
+            <div class="toggle-switch"><input type="checkbox" id="pm-notify-sms" /><span class="slider"></span></div>
+          </label>
+          <label class="pm-toggle-row">
+            <div class="pm-toggle-info">
+              <div class="pm-toggle-name">🔔 Push Notification</div>
+              <div class="pm-toggle-desc">รับการแจ้งเตือนบนเบราว์เซอร์</div>
+            </div>
+            <div class="toggle-switch"><input type="checkbox" id="pm-notify-push" /><span class="slider"></span></div>
+          </label>
+
+          <div class="pm-section-label">ธีม</div>
+          <label class="pm-toggle-row">
+            <div class="pm-toggle-info">
+              <div class="pm-toggle-name">🌙 Dark Mode</div>
+              <div class="pm-toggle-desc">เปิด/ปิดโหมดกลางคืน</div>
+            </div>
+            <div class="toggle-switch"><input type="checkbox" id="pm-dark-mode" /><span class="slider"></span></div>
+          </label>
+
+          <button class="pm-save-btn" id="pm-save-settings" style="margin-top:20px">💾 บันทึกการตั้งค่า</button>
+        </div>
+
+      </div><!-- /pm-body -->
+
+      <!-- Footer -->
+      <div class="pm-footer">
+        <div class="pm-footer-info">SolarEdge Pro v2.0</div>
+        <button class="pm-logout-btn" id="pm-logout-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          ออกจากระบบ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       IMAGE CROPPER MODAL
+  ═══════════════════════════════════════ -->
+  <div id="cropper-overlay" class="cropper-overlay hidden" role="dialog" aria-modal="true" aria-label="ครอปรูปโปรไฟล์">
+    <div class="cropper-modal">
+      <div class="cropper-header">
+        <div class="cropper-title">✂️ ครอปรูปโปรไฟล์</div>
+        <button class="pm-close" id="crop-close" onclick="closeCropper()" aria-label="ปิด">✕</button>
+      </div>
+      <div class="cropper-canvas-wrap">
+        <canvas id="cropper-canvas" width="360" height="320"></canvas>
+      </div>
+      <div class="cropper-controls">
+        <div class="cropper-zoom-row">
+          <span class="zoom-icon">🔍</span>
+          <input type="range" class="cropper-zoom-slider" id="crop-zoom" min="0.5" max="5" step="0.05" value="1" />
+          <span class="zoom-icon" style="font-size:18px">🔎</span>
+        </div>
+        <div class="cropper-btns">
+          <button class="btn-crop-cancel" id="crop-cancel">ยกเลิก</button>
+          <button class="btn-crop-reset"  id="crop-reset">↺ รีเซ็ต</button>
+          <button class="btn-crop-do"     id="crop-do">✂️ ครอป</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=5"></script>
+  <script src="control.js?v=5"></script>
+  <script src="auth.js?v=1"></script>
+  <script src="profile.js?v=1"></script>
 </body>
 </html>
